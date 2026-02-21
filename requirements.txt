@@ -1,0 +1,19 @@
+# Flask-App 项目依赖
+
+## 核心框架
+Flask==3.1.2
+
+## 网络请求
+requests==2.32.5
+
+## 任务调度
+schedule==1.2.2
+
+## 股票数据模块依赖
+pandas==2.2.0
+numpy==1.26.4
+beautifulsoup4==4.12.3
+lxml==5.2.1
+
+## 开发依赖 (见 requirements-test.txt)
+## 股票高级依赖 (见 requirements-stock.txt)

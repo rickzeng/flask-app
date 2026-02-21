@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+coverage_report/
+htmlcov/
+.tox/
+.nox/
+
+# Logs
+*.log
+flask.log
+reddit_push.log
+reddit_cron.log
+
+# Output directories
+reddit_output/
+reddit_records/
+stock_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.bak
+*.backup

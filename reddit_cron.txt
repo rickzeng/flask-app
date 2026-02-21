@@ -1,0 +1,6 @@
+# Reddit 每日推送任务
+# 每天中午12点运行
+0 12 * * * cd /home/ubuntu/flask-app && /home/ubuntu/flask-app/venv/bin/python3 /home/ubuntu/flask-app/reddit_daily_push.py --once >> /home/ubuntu/flask-app/reddit_cron.log 2>&1
+
+# 测试任务（每5分钟运行一次）
+# */5 * * * * cd /home/ubuntu/flask-app && /home/ubuntu/flask-app/venv/bin/python3 /home/ubuntu/flask-app/reddit_daily_push.py --once >> /home/ubuntu/flask-app/reddit_test.log 2>&1
