@@ -16,6 +16,14 @@ except ImportError as e:
     print(f"警告: 无法导入股票模块: {e}")
     STOCK_MODULE_AVAILABLE = False
 
+# 尝试导入 V2free 自动化模块
+try:
+    from v2free_routes import register_v2free_blueprint
+    V2FREE_AVAILABLE = True
+except ImportError as e:
+    print(f"警告: 无法导入 V2free 自动化模块: {e}")
+    V2FREE_AVAILABLE = False
+
 # 尝试导入配置
 try:
     from config import get_config
@@ -36,6 +44,15 @@ def create_app():
         print(f"警告: 无法导入股票模块: {e}")
         stock_module_available = False
     
+    # 检查 V2free 自动化模块是否可用
+    v2free_available = False
+    try:
+        from v2free_routes import register_v2free_blueprint
+        v2free_available = True
+    except ImportError as e:
+        print(f"警告: 无法导入 V2free 自动化模块: {e}")
+        v2free_available = False
+    
     app = Flask(__name__)
     
     # 基础配置
@@ -51,7 +68,7 @@ def create_app():
     setup_logging(app)
     
     # 注册路由
-    register_routes(app, stock_module_available)
+    register_routes(app, stock_module_available, v2free_available)
     
     # 注册股票API（如果可用）
     if stock_module_available:
@@ -62,7 +79,16 @@ def create_app():
             app.logger.error(f"注册股票API模块失败: {e}")
             stock_module_available = False
     
-    app.logger.info(f"Flask应用启动完成，股票模块: {'可用' if stock_module_available else '不可用'}")
+    # 注册 V2free 自动化模块（如果可用）
+    if v2free_available:
+        try:
+            register_v2free_blueprint(app)
+            app.logger.info("V2free 自动化模块已成功注册")
+        except Exception as e:
+            app.logger.error(f"注册 V2free 自动化模块失败: {e}")
+            v2free_available = False
+    
+    app.logger.info(f"Flask应用启动完成，股票模块: {'可用' if stock_module_available else '不可用'}，V2free模块: {'可用' if v2free_available else '不可用'}")
     return app
 
 
@@ -89,7 +115,7 @@ def setup_logging(app):
         app.logger.setLevel(logging.DEBUG)
 
 
-def register_routes(app, stock_module_available=False):
+def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
     """注册路由"""
     
     @app.route('/')
@@ -111,6 +137,24 @@ def register_routes(app, stock_module_available=False):
             """
         else:
             stock_module_info = "<p>⚠️ 股票数据模块当前不可用</p>"
+        
+        v2free_module_info = ""
+        try:
+            from v2free_routes import V2FREE_AVAILABLE
+            if V2FREE_AVAILABLE:
+                v2free_module_info = """
+                <h2>🌐 V2free 自动化模块</h2>
+                <ul>
+                    <li><a href="/v2free/">/v2free/</a> - V2free 管理页面</li>
+                    <li><a href="/v2free/api/health">/v2free/api/health</a> - 健康检查</li>
+                    <li><a href="/v2free/api/config">/v2free/api/config</a> - 配置信息</li>
+                    <li><a href="/v2free/api/logs">/v2free/api/logs</a> - 访问日志</li>
+                </ul>
+                """
+            else:
+                v2free_module_info = "<p>⚠️ V2free 自动化模块当前不可用</p>"
+        except:
+            v2free_module_info = "<p>⚠️ V2free 自动化模块当前不可用</p>"
         
         html_content = f"""
         <!DOCTYPE html>
@@ -144,12 +188,21 @@ def register_routes(app, stock_module_available=False):
             </div>
             
             <div class="module">
-                <h2>📈 股票数据模块 
+                <h2>📈 股票数据模块
                     <span class="status {'available' if stock_module_available else 'unavailable'}">
                         {'✅ 可用' if stock_module_available else '❌ 不可用'}
                     </span>
                 </h2>
                 {stock_module_info}
+            </div>
+            
+            <div class="module">
+                <h2>🌐 V2free 自动化模块
+                    <span class="status {'available' if V2FREE_AVAILABLE else 'unavailable'}">
+                        {'✅ 可用' if V2FREE_AVAILABLE else '❌ 不可用'}
+                    </span>
+                </h2>
+                {v2free_module_info}
             </div>
             
             <div class="module">
@@ -167,6 +220,7 @@ def register_routes(app, stock_module_available=False):
                     <li>✅ Flask Web 应用框架</li>
                     <li>✅ A股股票数据获取</li>
                     <li>✅ 资金流向分析</li>
+                    <li>✅ V2free 浏览器自动化（Playwright）</li>
                     <li>✅ RESTful API 接口</li>
                     <li>✅ 数据缓存机制</li>
                     <li>✅ 错误处理和日志</li>
@@ -231,6 +285,7 @@ def register_routes(app, stock_module_available=False):
             'modules': {
                 'flask': 'available',
                 'stock_data': 'available' if stock_module_available else 'unavailable',
+                'v2free_automation': 'available' if V2FREE_AVAILABLE else 'unavailable',
                 'reddit_push': 'available'  # 假设Reddit推送模块存在
             },
             'endpoints': {
@@ -243,7 +298,14 @@ def register_routes(app, stock_module_available=False):
                     '/api/stock/realtime',
                     '/api/stock/config',
                     '/api/stock/docs'
-                ] if stock_module_available else []
+                ] if stock_module_available else [],
+                'v2free': [
+                    '/v2free/',
+                    '/v2free/api/health',
+                    '/v2free/api/config',
+                    '/v2free/api/logs',
+                    '/v2free/api/login'
+                ] if V2FREE_AVAILABLE else []
             }
         })
 

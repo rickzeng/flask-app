@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2free 自动化管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+        }
+        
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .info-item label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .info-item span {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .control-panel h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .captcha-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .captcha-section.show {
+            display: block;
+        }
+        
+        .captcha-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .captcha-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .captcha-image {
+            flex: 1;
+            min-width: 300px;
+            text-align: center;
+        }
+        
+        .captcha-image img {
+            max-width: 100%;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .captcha-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            letter-spacing: 3px;
+        }
+        
+        .captcha-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .captcha-input label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+        
+        .captcha-input input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .captcha-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .captcha-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .status-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .status-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .status-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status-box.show {
+            display: block;
+        }
+        
+        .status-box.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .status-box.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .logs-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logs-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .logs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .logs-table th,
+        .logs-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .logs-table th {
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .logs-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .badge {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .no-logs {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .timestamp {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .full-screenshot {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .full-screenshot img {
+            max-width: 100%;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🚀 V2free 自动化管理</h1>
+            <p>使用 Playwright 自动登录 V2free 并记录访问日志</p>
+        </div>
+        
+        <!-- 信息卡片 -->
+        <div class="info-card">
+            <div class="info-item">
+                <label>登录URL</label>
+                <span>{{ config_url }}</span>
+            </div>
+            <div class="info-item">
+                <label>用户名</label>
+                <span>{{ username }}</span>
+            </div>
+            <div class="info-item">
+                <label>浏览器模式</label>
+                <span>无头模式 (Headless)</span>
+            </div>
+            <div class="info-item">
+                <label>代理</label>
+                <span>已启用 (127.0.0.1:7890)</span>
+            </div>
+        </div>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <h2>🎮 控制面板</h2>
+            <button id="prepareBtn" class="btn btn-primary" onclick="prepareLogin()">
+                <span id="prepareBtnText">准备登录</span>
+            </button>
+            <button class="btn btn-secondary" onclick="refreshLogs()">
+                刷新日志
+            </button>
+        </div>
+        
+        <!-- 验证码输入区域 -->
+        <div id="captchaSection" class="captcha-section">
+            <h2>🔐 验证码（两步验证码，未设置请留空）</h2>
+            <div class="captcha-container">
+                <div class="captcha-image">
+                    <div id="captchaText" class="captcha-text" style="display: none;"></div>
+                    <img id="captchaImage" src="" alt="验证码">
+                    <div id="fullScreenshot" class="full-screenshot" style="display: none;">
+                        <p style="margin-bottom: 10px; color: #666;">完整页面截图：</p>
+                        <img id="fullScreenshotImg" src="" alt="完整页面">
+                    </div>
+                </div>
+                <div class="captcha-input">
+                    <label for="captchaInput">两步验证码（可选）</label>
+                    <input type="text" id="captchaInput" placeholder="如果您设置了手机验证码，请输入；否则留空" maxlength="10">
+                    <div class="captcha-buttons">
+                        <button id="submitBtn" class="btn btn-success" onclick="submitLogin()">
+                            <span id="submitBtnText">提交登录</span>
+                        </button>
+                        <button id="cancelBtn" class="btn btn-danger" onclick="cancelLogin()">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 状态显示 -->
+        <div class="status-section">
+            <h2>📊 操作状态</h2>
+            <div id="statusBox" class="status-box">
+                <div id="statusMessage"></div>
+            </div>
+        </div>
+        
+        <!-- 日志列表 -->
+        <div class="logs-section">
+            <h2>📝 访问日志</h2>
+            {% if logs %}
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>状态</th>
+                            <th>消息</th>
+                            <th>页面标题</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="timestamp">{{ log.timestamp }}</td>
+                            <td>
+                                {% if log.success %}
+                                    <span class="badge badge-success">成功</span>
+                                {% else %}
+                                    <span class="badge badge-error">失败</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.message }}</td>
+                            <td>{{ log.page_title }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="no-logs">
+                    暂无访问日志
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量：当前会话ID
+        let currentSessionId = null;
+        
+        // 显示状态消息
+        function showStatus(message, type = 'info') {
+            const statusBox = document.getElementById('statusBox');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusBox.className = 'status-box show';
+            if (type === 'success') {
+                statusBox.classList.add('success');
+            } else if (type === 'error') {
+                statusBox.classList.add('error');
+            }
+            
+            statusMessage.innerHTML = message;
+        }
+        
+        // 隐藏状态消息
+        function hideStatus() {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.className = 'status-box';
+        }
+        
+        // 准备登录
+        async function prepareLogin() {
+            const btn = document.getElementById('prepareBtn');
+            const btnText = document.getElementById('prepareBtnText');
+            
+            // 禁用按钮，显示加载状态
+            btn.disabled = true;
+            btnText.textContent = '正在准备...';
+            
+            hideStatus();
+            showStatus('正在启动浏览器并准备登录表单...', 'info');
+            
+            try {
+                const response = await fetch('/v2free/api/prepare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 保存会话ID
+                    currentSessionId = result.session_id;
+                    
+                    showStatus('登录表单已准备完成，请输入验证码', 'success');
+                    
+                    // 显示验证码区域
+                    const captchaSection = document.getElementById('captchaSection');
+                    captchaSection.classList.add('show');
+                    
+                    // 如果是文本验证码，直接显示文本
+                    if (result.captcha_text) {
+                        document.getElementById('captchaText').textContent = result.captcha_text;
+                        document.getElementById('captchaText').style.display = 'block';
+                        document.getElementById('captchaImage').style.display = 'none';
+                        
+                        // 自动填充验证码输入框
+                        document.getElementById('captchaInput').value = result.captcha_text;
+                    } else if (result.captcha_image_url) {
+                        // 显示验证码图片
+                        document.getElementById('captchaImage').src = result.captcha_image_url;
+                        document.getElementById('captchaText').style.display = 'none';
+                        document.getElementById('captchaImage').style.display = 'block';
+                    }
+                    
+                    // 显示完整页面截图（如果有）
+                    if (result.screenshot_url) {
+                        document.getElementById('fullScreenshotImg').src = result.screenshot_url;
+                        document.getElementById('fullScreenshot').style.display = 'block';
+                    }
+                    
+                    // 聚焦验证码输入框
+                    document.getElementById('captchaInput').focus();
+                    
+                    console.log('准备结果:', result);
+                } else {
+                    showStatus(`<strong>准备失败</strong><br>${result.message}`, 'error');
+                }
+                
+            } catch (error) {
+                showStatus(`<strong>请求失败</strong><br>${error.message}`, 'error');
+            } finally {
+                // 恢复按钮
+                btn.disabled = false;
+                btnText.textContent = '准备登录';
+            }
+        }
+        
+        // 提交登录
+        async function submitLogin() {
+            const captchaInput = document.getElementById('captchaInput');
+            const captchaCode = captchaInput.value.trim();
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('submitBtnText');
+            
+            // 禁用按钮，显示加载状态
+            btn.disabled = true;
+            btnText.textContent = '正在登录...';
+            
+            hideStatus();
+            showStatus('正在提交登录...', 'info');
+            
+            try {
+                const response = await fetch('/v2free/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        captcha: captchaCode
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus(`
+                        <strong>登录成功！</strong><br>
+                        时间: ${result.timestamp}<br>
+                        页面标题: ${result.page_title}<br>
+                        页面URL: ${result.page_url}
+                    `, 'success');
+                    
+                    // 清空验证码输入
+                    captchaInput.value = '';
+                    
+                    // 隐藏验证码区域
+                    document.getElementById('captchaSection').classList.remove('show');
+                    
+                    // 刷新日志
+                    setTimeout(() => refreshLogs(), 500);
+                    
+                } else {
+                    showStatus(`<strong>登录失败</strong><br>${result.message}`, 'error');
+                    
+                    // 如果有截图，显示出来
+                    if (result.screenshot_url) {
+                        document.getElementById('fullScreenshotImg').src = result.screenshot_url;
+                        document.getElementById('fullScreenshot').style.display = 'block';
+                    }
+                }
+                
+            } catch (error) {
+                showStatus(`<strong>请求失败</strong><br>${error.message}`, 'error');
+            } finally {
+                // 恢复按钮
+                btn.disabled = false;
+                btnText.textContent = '提交登录';
+            }
+        }
+        
+        // 取消登录
+        async function cancelLogin() {
+            const btn = document.getElementById('cancelBtn');
+            
+            btn.disabled = true;
+            
+            try {
+                await fetch('/v2free/api/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId
+                    })
+                });
+            } catch (error) {
+                console.error('取消失败:', error);
+            }
+            
+            // 清空会话ID
+            currentSessionId = null;
+            
+            // 隐藏验证码区域
+            document.getElementById('captchaSection').classList.remove('show');
+            
+            // 清空验证码输入
+            document.getElementById('captchaInput').value = '';
+            
+            // 恢复按钮
+            btn.disabled = false;
+            
+            showStatus('已取消登录操作', 'info');
+            
+            setTimeout(() => hideStatus(), 2000);
+        }
+        
+        // 刷新日志
+        async function refreshLogs() {
+            try {
+                const response = await fetch('/v2free/api/logs');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 重新加载页面以显示最新日志
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('刷新日志失败:', error);
+            }
+        }
+        
+        // 验证码输入框回车提交
+        document.getElementById('captchaInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitLogin();
+            }
+        });
+        
+        // 自动刷新日志（每60秒）
+        setInterval(refreshLogs, 60000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股股票分析平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .stock-card {
+            cursor: pointer;
+        }
+        .stock-card:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+        .positive {
+            color: #e74c3c;
+        }
+        .negative {
+            color: #27ae60;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        .chart-container {
+            height: 300px;
+            padding: 20px;
+        }
+        .rank-badge {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        .rank-1 { background-color: #f1c40f; color: white; }
+        .rank-2 { background-color: #95a5a6; color: white; }
+        .rank-3 { background-color: #d35400; color: white; }
+        .rank-other { background-color: #3498db; color: white; }
+        .tab-content {
+            padding: 20px 0;
+        }
+        .nav-tabs .nav-link {
+            color: #666;
+        }
+        .nav-tabs .nav-link.active {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .metric-card {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+        .search-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .search-input {
+            font-size: 1.2rem;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        .search-input:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        .stock-detail-section {
+            display: none;
+        }
+        .stock-detail-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">📊 A股股票分析平台</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="nav-dashboard">总览</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="nav-search">股票查询</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- 股票查询部分 -->
+        <div class="search-box">
+            <h4 class="mb-3">🔍 股票代码查询</h4>
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" class="form-control search-input" id="stockCodeInput"
+                           placeholder="请输入股票代码（如 000001）" maxlength="6">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" id="searchBtn" onclick="searchStock()">
+                        查询
+                    </button>
+                </div>
+            </div>
+            <div class="mt-2 text-muted small">
+                提示：请输入6位股票代码，如 000001（平安银行）、600519（贵州茅台）
+            </div>
+        </div>
+
+        <!-- 股票榜单部分 -->
+        <div class="row" id="rankingSection">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>资金流入榜单</h2>
+                    <div>
+                        <select class="form-select d-inline-block w-auto me-2" id="days-select">
+                            <option value="3">最近3天</option>
+                            <option value="5" selected>最近5天</option>
+                            <option value="10">最近10天</option>
+                            <option value="20">最近20天</option>
+                        </select>
+                        <select class="form-select d-inline-block w-auto" id="topn-select">
+                            <option value="5" selected>前5名</option>
+                            <option value="10">前10名</option>
+                            <option value="20">前20名</option>
+                            <option value="30">前30名</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 概览指标 -->
+                <div class="row mb-4" id="metrics">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="total-inflow">0</div>
+                            <div class="metric-label">总流入（万元）</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="avg-change">0%</div>
+                            <div class="metric-label">平均涨幅</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="stock-count">0</div>
+                            <div class="metric-label">股票数量</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="update-time">--:--:--</div>
+                            <div class="metric-label">更新时间</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 股票列表 -->
+                <div class="row" id="stock-list">
+                    <div class="col-12 text-center">
+                        <div class="loading">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">加载中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区域 -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">资金流入分布</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="fundFlowChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">涨跌分布</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="changeChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 股票详情部分 -->
+        <div class="stock-detail-section" id="stockDetailSection">
+            <div class="row">
+                <div class="col-12">
+                    <button class="btn btn-secondary mb-3" onclick="showRanking()">
+                        ← 返回榜单
+                    </button>
+                </div>
+            </div>
+            <div id="stockDetailContent">
+                <div class="col-12 text-center">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" id="refreshBtn">
+        🔄
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let fundFlowChart = null;
+        let changeChart = null;
+        let stockData = [];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStockData();
+            initCharts();
+
+            // 事件监听
+            document.getElementById('days-select').addEventListener('change', loadStockData);
+            document.getElementById('topn-select').addEventListener('change', loadStockData);
+            document.getElementById('refreshBtn').addEventListener('click', loadStockData);
+            document.getElementById('stockCodeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchStock();
+                }
+            });
+        });
+
+        // 搜索股票
+        async function searchStock() {
+            const stockCode = document.getElementById('stockCodeInput').value.trim();
+
+            if (!stockCode) {
+                alert('请输入股票代码');
+                return;
+            }
+
+            if (!/^\d{6}$/.test(stockCode)) {
+                alert('股票代码必须是6位数字');
+                return;
+            }
+
+            showStockDetail(stockCode);
+        }
+
+        // 显示股票详情
+        async function showStockDetail(stockCode) {
+            // 隐藏榜单，显示详情
+            document.getElementById('rankingSection').style.display = 'none';
+            document.getElementById('stockDetailSection').classList.add('active');
+
+            const detailContent = document.getElementById('stockDetailContent');
+            detailContent.innerHTML = `
+                <div class="col-12 text-center">
+                    <div class="loading">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/stock/details/${stockCode}`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    const details = result.data;
+                    const changeClass = details.change_percent >= 0 ? 'positive' : 'negative';
+                    const changeSymbol = details.change_percent >= 0 ? '+' : '';
+
+                    detailContent.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">基本信息</h5>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td>股票代码</td>
+                                                <td class="fw-bold">${details.code}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>股票名称</td>
+                                                <td class="fw-bold">${details.name}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>当前价格</td>
+                                                <td class="fw-bold">¥${details.current_price.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>涨跌幅</td>
+                                                <td class="${changeClass} fw-bold">
+                                                    ${changeSymbol}${details.change_percent.toFixed(2)}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>成交量</td>
+                                                <td>${(details.volume / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>换手率</td>
+                                                <td>${details.turnover_rate.toFixed(2)}%</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">资金分析</h5>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td>总流入</td>
+                                                <td class="text-success">¥${(details.fund_flow.total_inflow / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>主力净流入</td>
+                                                <td class="text-success">¥${(details.fund_flow.main_net_inflow / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>大单流入</td>
+                                                <td class="text-success">¥${(details.fund_flow.large_order_inflow / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>中单流入</td>
+                                                <td class="text-success">¥${(details.fund_flow.medium_order_inflow / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>小单流入</td>
+                                                <td class="text-success">¥${(details.fund_flow.small_order_inflow / 10000).toFixed(2)}万</td>
+                                            </tr>
+                                            <tr>
+                                                <td>流入得分</td>
+                                                <td class="fw-bold">${details.fund_flow_score}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">财务指标</h5>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td>市盈率</td>
+                                                <td>${details.pe_ratio.toFixed(2)}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>营收增长</td>
+                                                <td class="${details.financial_indicators.revenue_growth >= 0 ? 'positive' : 'negative'}">
+                                                    ${details.financial_indicators.revenue_growth >= 0 ? '+' : ''}${details.financial_indicators.revenue_growth}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>利润增长</td>
+                                                <td class="${details.financial_indicators.profit_growth >= 0 ? 'positive' : 'negative'}">
+                                                    ${details.financial_indicators.profit_growth >= 0 ? '+' : ''}${details.financial_indicators.profit_growth}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>ROE</td>
+                                                <td>${details.financial_indicators.roe.toFixed(2)}%</td>
+                                            </tr>
+                                            <tr>
+                                                <td>负债率</td>
+                                                <td>${details.financial_indicators.debt_ratio.toFixed(2)}%</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">技术指标</h5>
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td>RSI</td>
+                                                <td>${details.technical_indicators.rsi}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>MACD</td>
+                                                <td class="${details.technical_indicators.macd >= 0 ? 'positive' : 'negative'}">
+                                                    ${details.technical_indicators.macd >= 0 ? '+' : ''}${details.technical_indicators.macd}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>布林带位置</td>
+                                                <td>${details.technical_indicators.bollinger_position.toFixed(2)}%</td>
+                                            </tr>
+                                            <tr>
+                                                <td>量比</td>
+                                                <td>${details.technical_indicators.volume_ratio.toFixed(2)}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">投资建议</h5>
+                                        <div class="alert alert-info">
+                                            <strong>分析结论：</strong>${details.analysis}<br>
+                                            <strong>投资建议：</strong><span class="fw-bold">${details.recommendation}</span>
+                                        </div>
+                                        <h6>行业与概念</h6>
+                                        <p>
+                                            <span class="badge bg-secondary">${details.industry}</span>
+                                            ${details.concept.map(c => `<span class="badge bg-primary ms-1">${c}</span>`).join('')}
+                                        </p>
+                                        <h6 class="mt-3">最新动态</h6>
+                                        <ul class="list-unstyled">
+                                            ${details.recent_news.map(news => `
+                                                <li class="mb-2">
+                                                    <a href="#" class="text-decoration-none">${news.title}</a>
+                                                    <small class="text-muted">(${news.date} - ${news.source})</small>
+                                                </li>
+                                            `).join('')}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    detailContent.innerHTML = `
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                未找到股票 ${stockCode} 的详细信息
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载股票详情失败:', error);
+                detailContent.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            加载失败，请稍后重试
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // 显示榜单
+        function showRanking() {
+            document.getElementById('stockDetailSection').classList.remove('active');
+            document.getElementById('rankingSection').style.display = 'block';
+        }
+
+        // 加载股票数据
+        async function loadStockData() {
+            const days = document.getElementById('days-select').value;
+            const topn = document.getElementById('topn-select').value;
+
+            try {
+                const response = await fetch(`/api/stock/top_fund_flow?days=${days}&top_n=${topn}&include_details=true`);
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    stockData = result.data;
+                    renderStockList(stockData);
+                    updateMetrics(stockData);
+                    updateCharts(stockData);
+                } else {
+                    alert('加载股票数据失败: ' + result.message);
+                }
+            } catch (error) {
+                console.error('加载股票数据失败:', error);
+                alert('加载数据失败，请刷新页面重试');
+            }
+        }
+
+        // 渲染股票列表
+        function renderStockList(stocks) {
+            const container = document.getElementById('stock-list');
+
+            if (stocks.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center"><p>暂无数据</p></div>';
+                return;
+            }
+
+            let html = '';
+            stocks.forEach((stock, index) => {
+                const rankClass = index < 3 ? `rank-${index + 1}` : 'rank-other';
+                const changeClass = stock.change_percent >= 0 ? 'positive' : 'negative';
+                const changeSymbol = stock.change_percent >= 0 ? '+' : '';
+
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card stock-card" onclick="showStockDetail('${stock.code}')">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="rank-badge ${rankClass} me-3">${index + 1}</div>
+                                    <div>
+                                        <h5 class="card-title mb-0">${stock.name}</h5>
+                                        <small class="text-muted">${stock.code}</small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <small class="text-muted">现价</small>
+                                            <div class="h4 mb-0">¥${stock.current_price.toFixed(2)}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mb-2">
+                                            <small class="text-muted">涨跌幅</small>
+                                            <div class="h4 mb-0 ${changeClass}">${changeSymbol}${stock.change_percent.toFixed(2)}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">资金流入</small>
+                                    <div class="h5 mb-0">¥${(stock.fund_flow.total_inflow / 10000).toFixed(2)}万</div>
+                                </div>
+                                <div>
+                                    <small class="text-muted">分析</small>
+                                    <div class="text-muted">${stock.analysis}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 更新指标
+        function updateMetrics(stocks) {
+            if (stocks.length === 0) return;
+
+            const totalInflow = stocks.reduce((sum, stock) => sum + (stock.fund_flow.total_inflow || 0), 0);
+            const avgChange = stocks.reduce((sum, stock) => sum + stock.change_percent, 0) / stocks.length;
+
+            document.getElementById('total-inflow').textContent = (totalInflow / 10000).toFixed(2);
+            document.getElementById('avg-change').textContent = avgChange.toFixed(2) + '%';
+            document.getElementById('stock-count').textContent = stocks.length;
+
+            const now = new Date();
+            document.getElementById('update-time').textContent = now.toLocaleTimeString();
+        }
+
+        // 初始化图表
+        function initCharts() {
+            const fundFlowCtx = document.getElementById('fundFlowChart').getContext('2d');
+            const changeCtx = document.getElementById('changeChart').getContext('2d');
+
+            fundFlowChart = new Chart(fundFlowCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '资金流入（万元）',
+                        data: [],
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            changeChart = new Chart(changeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['上涨', '下跌'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['rgba(231, 76, 60, 0.8)', 'rgba(39, 174, 96, 0.8)'],
+                        borderColor: ['rgba(231, 76, 60, 1)', 'rgba(39, 174, 96, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新图表
+        function updateCharts(stocks) {
+            // 更新资金流入图表
+            fundFlowChart.data.labels = stocks.slice(0, 10).map(s => s.name);
+            fundFlowChart.data.datasets[0].data = stocks.slice(0, 10).map(s => (s.fund_flow.total_inflow / 10000).toFixed(2));
+            fundFlowChart.update();
+
+            // 更新涨跌分布图表
+            const upCount = stocks.filter(s => s.change_percent >= 0).length;
+            const downCount = stocks.filter(s => s.change_percent < 0).length;
+
+            changeChart.data.datasets[0].data = [upCount, downCount];
+            changeChart.update();
+        }
+    </script>
+</body>
+</html>

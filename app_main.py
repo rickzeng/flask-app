@@ -23,9 +23,13 @@ def create_app(config_name=None):
         app.logger.setLevel(logging.INFO)
         app.logger.info('Flask应用启动')
     
-    # 注册蓝图
-    from app.stock_routes import stock_bp
-    app.register_blueprint(stock_bp)
+    # 注册股票API蓝图
+    try:
+        from stock_api import register_stock_blueprint
+        register_stock_blueprint(app)
+        app.logger.info("股票数据API模块已成功注册")
+    except ImportError as e:
+        app.logger.warning(f"无法导入股票模块: {e}")
     
     # 注册路由
     register_routes(app)
@@ -41,10 +45,11 @@ def register_routes(app):
         <h1>Flask 应用程序</h1>
         <p>欢迎使用 Flask 应用程序！</p>
         <ul>
+            <li><a href="/api/stock/dashboard">/api/stock/dashboard</a> - 股票分析页面</li>
+            <li><a href="/api/stock/health">/api/stock/health</a> - 股票模块健康检查</li>
+            <li><a href="/api/stock/top_fund_flow?days=5&top_n=10">/api/stock/top_fund_flow</a> - 资金流入前10股票</li>
             <li><a href="/api/hello">/api/hello</a> - 打招呼</li>
             <li><a href="/api/health">/api/health</a> - 健康检查</li>
-            <li><a href="/api/stocks/health">/api/stocks/health</a> - 股票模块健康检查</li>
-            <li><a href="/api/stocks/top-fund-flow?days=5&limit=10">/api/stocks/top-fund-flow</a> - 资金流入前10股票</li>
         </ul>
         '''
 

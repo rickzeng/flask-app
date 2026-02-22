@@ -146,20 +146,33 @@ class StockDataFetcher:
                 )
             
             response.raise_for_status()
-            
-            # 尝试解析JSON
-            try:
-                return response.json()
-            except:
-                # 如果不是JSON，返回文本
-                return {'text': response.text}
-                
-        except requests.exceptions.Timeout:
-            self.logger.error(f"请求超时: {url}")
-        except requests.exceptions.RequestException as e:
+            return response.json() if response.headers.get('content-type', '').startswith('application/json') else response.text
+        except Exception as e:
             self.logger.error(f"请求失败: {e}")
+            return None
+    
+    def _convert_numpy_types(self, data: Any) -> Any:
+        """
+        将numpy类型转换为Python原生类型
         
-        return None
+        Args:
+            data: 需要转换的数据
+            
+        Returns:
+            转换后的数据
+        """
+        if isinstance(data, np.ndarray):
+            return data.tolist()
+        elif isinstance(data, (np.integer, np.int64, np.int32)):
+            return int(data)
+        elif isinstance(data, (np.floating, np.float64, np.float32)):
+            return float(data)
+        elif isinstance(data, dict):
+            return {key: self._convert_numpy_types(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [self._convert_numpy_types(item) for item in data]
+        else:
+            return data
     
     def get_top_fund_flow_stocks(self, days: int = 5, top_n: int = 10) -> List[Dict]:
         """
@@ -204,8 +217,11 @@ class StockDataFetcher:
             # 保存到缓存
             self._save_to_cache(cache_key, enriched_stocks)
             
-            self.logger.info(f"成功获取 {len(enriched_stocks)} 只股票数据")
-            return enriched_stocks
+            # 转换numpy类型
+            converted_stocks = self._convert_numpy_types(enriched_stocks)
+            
+            self.logger.info(f"成功获取 {len(converted_stocks)} 只股票数据")
+            return converted_stocks
             
         except Exception as e:
             self.logger.error(f"获取股票数据失败: {e}")
@@ -227,13 +243,13 @@ class StockDataFetcher:
                       '海康威视', '宁德时代', '中国平安', '招商银行', '格力电器']
         
         for i in range(len(stock_codes)):
-            # 生成模拟资金流向数据
+            # 生成模拟资金流向数据（单位：元）
             fund_flow = {
-                'main_net_inflow': np.random.uniform(1000, 10000),  # 主力净流入（万元）
-                'large_order_inflow': np.random.uniform(500, 5000),
-                'medium_order_inflow': np.random.uniform(200, 2000),
-                'small_order_inflow': np.random.uniform(100, 1000),
-                'total_inflow': np.random.uniform(2000, 20000),
+                'main_net_inflow': np.random.uniform(10000000, 100000000),  # 主力净流入（1000万-1亿元）
+                'large_order_inflow': np.random.uniform(5000000, 50000000),  # 大单流入（500万-5000万）
+                'medium_order_inflow': np.random.uniform(2000000, 20000000),  # 中单流入（200万-2000万）
+                'small_order_inflow': np.random.uniform(1000000, 10000000),  # 小单流入（100万-1000万）
+                'total_inflow': np.random.uniform(20000000, 200000000),  # 总流入（2000万-2亿元）
             }
             
             # 计算综合得分
@@ -367,24 +383,91 @@ class StockDataFetcher:
     def get_stock_details(self, stock_code: str) -> Optional[Dict]:
         """获取股票详细信息"""
         cache_key = self._get_cache_key('stock_details', {'code': stock_code})
-        
+
         cached_data = self._load_from_cache(cache_key)
         if cached_data:
             return cached_data
-        
+
+        # 生成资金流向数据（单位：元）
+        fund_flow = {
+            'main_net_inflow': np.random.uniform(10000000, 100000000),  # 主力净流入（1000万-1亿元）
+            'large_order_inflow': np.random.uniform(5000000, 50000000),  # 大单流入（500万-5000万）
+            'medium_order_inflow': np.random.uniform(2000000, 20000000),  # 中单流入（200万-2000万）
+            'small_order_inflow': np.random.uniform(1000000, 10000000),  # 小单流入（100万-1000万）
+            'total_inflow': np.random.uniform(20000000, 200000000),  # 总流入（2000万-2亿元）
+        }
+
+        # 计算综合得分
+        weights = self.config['fund_flow_weights']
+        score = (
+            fund_flow['main_net_inflow'] * weights['main_net_inflow'] +
+            fund_flow['large_order_inflow'] * weights['large_order_inflow'] +
+            fund_flow['medium_order_inflow'] * weights['medium_order_inflow'] +
+            fund_flow['small_order_inflow'] * weights['small_order_inflow']
+        )
+
+        # 生成技术指标
+        technical_indicators = {
+            'rsi': round(np.random.uniform(20, 80), 2),
+            'macd': round(np.random.uniform(-2, 2), 2),
+            'bollinger_position': round(np.random.uniform(0, 100), 2),
+            'volume_ratio': round(np.random.uniform(0.5, 3), 2),
+        }
+
+        # 根据技术指标生成分析
+        if technical_indicators['rsi'] > 70:
+            analysis = "技术指标显示超买，短期可能回调"
+            recommendation = "谨慎持有"
+        elif technical_indicators['rsi'] < 30:
+            analysis = "技术指标显示超卖，短期可能反弹"
+            recommendation = "适度关注"
+        elif technical_indicators['macd'] > 0 and technical_indicators['rsi'] > 50:
+            analysis = "技术指标走强，趋势向好"
+            recommendation = "适度关注"
+        else:
+            analysis = "技术指标平稳，等待突破"
+            recommendation = "观望"
+
+        # 生成当前日期附近的新闻（模拟）
+        today = datetime.now()
+        news_date1 = (today - timedelta(days=np.random.randint(1, 5))).strftime('%Y-%m-%d')
+        news_date2 = (today - timedelta(days=np.random.randint(6, 15))).strftime('%Y-%m-%d')
+
+        news_titles = [
+            ('公司发布业绩公告', '证券时报'),
+            ('重大项目进展公告', '上海证券报'),
+            ('控股股东增持公告', '中国证券报'),
+            ('公司分红预案公告', '证券日报'),
+            ('重大项目签约', '证券时报'),
+        ]
+
+        news1 = np.random.choice(len(news_titles))
+        news2 = np.random.choice([i for i in range(len(news_titles)) if i != news1])
+
         # 模拟股票详情数据
         details = {
             'code': stock_code,
             'name': f"股票{stock_code}",
             'company_name': f"{stock_code}股份有限公司",
             'industry': np.random.choice(['金融', '科技', '消费', '医药', '制造']),
-            'concept': np.random.choice(['人工智能', '新能源', '5G', '芯片', '生物医药'], 3),
+            'concept': list(np.random.choice(['人工智能', '新能源', '5G', '芯片', '生物医药'], 3, replace=False)),
             'listing_date': '2010-01-01',
             'total_shares': np.random.uniform(100000, 1000000),
             'circulating_shares': np.random.uniform(50000, 500000),
+            'current_price': np.random.uniform(10, 200),
+            'change_percent': np.random.uniform(-5, 5),
+            'volume': np.random.uniform(100000, 1000000),
+            'turnover_rate': np.random.uniform(0.5, 5),
+            'market_cap': np.random.uniform(1000000, 10000000),
+            'pe_ratio': np.random.uniform(10, 50),
+            'fund_flow': fund_flow,
+            'fund_flow_score': round(score, 2),
+            'technical_indicators': technical_indicators,
+            'analysis': analysis,
+            'recommendation': recommendation,
             'recent_news': [
-                {'title': '公司发布年度报告', 'date': '2024-03-15', 'source': '证券时报'},
-                {'title': '重大项目签约', 'date': '2024-03-10', 'source': '上海证券报'},
+                {'title': news_titles[news1][0], 'date': news_date1, 'source': news_titles[news1][1]},
+                {'title': news_titles[news2][0], 'date': news_date2, 'source': news_titles[news2][1]},
             ],
             'financial_indicators': {
                 'revenue_growth': round(np.random.uniform(-10, 30), 2),
@@ -395,7 +478,10 @@ class StockDataFetcher:
         }
         
         self._save_to_cache(cache_key, details)
-        return details
+        
+        # 转换numpy类型
+        converted_details = self._convert_numpy_types(details)
+        return converted_details
 
 
 if __name__ == '__main__':

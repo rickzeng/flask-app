@@ -65,3 +65,41 @@ Thumbs.db
 *.tmp
 *.bak
 *.backup
+
+# Git credentials
+.git/credentials
+
+# Workspace-specific files
+AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+MEMORY.md
+SOUL.md
+TOOLS.md
+USER.md
+WORKFLOW_AUTO.md
+.clawhub/
+.openclaw/
+memory/
+skills/
+
+# Screenshots and test files
+*.png
+test_*.py
+
+# Analysis reports (Chinese)
+# !README.md
+# !README_REDDIT_PUSH.md
+# !ACCESS_GUIDE.md
+# !CLOUD_FIREWALL_GUIDE.md
+# !STOCK_MODULE.md
+# !TESTING.md
+# !flask_app_analysis_report.md
+# !flask_app_analysis_report_updated.md
+# !flask_app_comprehensive_analysis_report.md
+
+# Temporary data files
+# !requirements.txt
+# !requirements-stock.txt
+# !requirements-test.txt
