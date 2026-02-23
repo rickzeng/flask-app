@@ -7,7 +7,7 @@ echo "======================================"
 # 项目目录
 PROJECT_DIR="/home/ubuntu/flask-app"
 VENV_PYTHON="$PROJECT_DIR/venv/bin/python3"
-MAIN_SCRIPT="$PROJECT_DIR/reddit_push_main.py"
+MAIN_SCRIPT="$PROJECT_DIR/app/reddit/main.py"
 LOG_FILE="$PROJECT_DIR/reddit_cron.log"
 
 # 创建 cron 任务内容

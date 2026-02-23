@@ -10,7 +10,8 @@ from datetime import datetime
 
 # 尝试导入股票API模块
 try:
-    from stock_api import register_stock_blueprint
+    from app.stock.api import register_stock_blueprint
+
     STOCK_MODULE_AVAILABLE = True
 except ImportError as e:
     print(f"警告: 无法导入股票模块: {e}")
@@ -18,7 +19,8 @@ except ImportError as e:
 
 # 尝试导入 V2free 自动化模块
 try:
-    from v2free_routes import register_v2free_blueprint
+    from app.v2free.routes import register_v2free_blueprint
+
     V2FREE_AVAILABLE = True
 except ImportError as e:
     print(f"警告: 无法导入 V2free 自动化模块: {e}")
@@ -27,6 +29,7 @@ except ImportError as e:
 # 尝试导入配置
 try:
     from config import get_config
+
     CONFIG_AVAILABLE = True
 except ImportError:
     CONFIG_AVAILABLE = False
@@ -38,38 +41,47 @@ def create_app():
     # 检查股票模块是否可用
     stock_module_available = False
     try:
-        from stock_api import register_stock_blueprint
+        from app.stock.api import register_stock_blueprint
+
         stock_module_available = True
     except ImportError as e:
         print(f"警告: 无法导入股票模块: {e}")
         stock_module_available = False
-    
+
     # 检查 V2free 自动化模块是否可用
     v2free_available = False
     try:
-        from v2free_routes import register_v2free_blueprint
+        from app.v2free.routes import register_v2free_blueprint
+
         v2free_available = True
     except ImportError as e:
         print(f"警告: 无法导入 V2free 自动化模块: {e}")
         v2free_available = False
-    
+    try:
+        from v2free_routes import register_v2free_blueprint
+
+        v2free_available = True
+    except ImportError as e:
+        print(f"警告: 无法导入 V2free 自动化模块: {e}")
+        v2free_available = False
+
     app = Flask(__name__)
-    
+
     # 基础配置
     app.config.update(
-        SECRET_KEY=os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production'),
-        DEBUG=os.environ.get('FLASK_DEBUG', 'True').lower() == 'true',
-        HOST=os.environ.get('HOST', '0.0.0.0'),
-        PORT=int(os.environ.get('PORT', 5000)),
-        LOG_FORMAT='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production"),
+        DEBUG=os.environ.get("FLASK_DEBUG", "True").lower() == "true",
+        HOST=os.environ.get("HOST", "0.0.0.0"),
+        PORT=int(os.environ.get("PORT", 5000)),
+        LOG_FORMAT="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
+
     # 配置日志
     setup_logging(app)
-    
+
     # 注册路由
     register_routes(app, stock_module_available, v2free_available)
-    
+
     # 注册股票API（如果可用）
     if stock_module_available:
         try:
@@ -78,7 +90,7 @@ def create_app():
         except Exception as e:
             app.logger.error(f"注册股票API模块失败: {e}")
             stock_module_available = False
-    
+
     # 注册 V2free 自动化模块（如果可用）
     if v2free_available:
         try:
@@ -87,8 +99,10 @@ def create_app():
         except Exception as e:
             app.logger.error(f"注册 V2free 自动化模块失败: {e}")
             v2free_available = False
-    
-    app.logger.info(f"Flask应用启动完成，股票模块: {'可用' if stock_module_available else '不可用'}，V2free模块: {'可用' if v2free_available else '不可用'}")
+
+    app.logger.info(
+        f"Flask应用启动完成，股票模块: {'可用' if stock_module_available else '不可用'}，V2free模块: {'可用' if v2free_available else '不可用'}"
+    )
     return app
 
 
@@ -96,29 +110,29 @@ def setup_logging(app):
     """设置日志"""
     if not app.debug:
         # 生产环境：文件日志
-        log_dir = 'logs'
+        log_dir = "logs"
         os.makedirs(log_dir, exist_ok=True)
-        
-        file_handler = logging.FileHandler(os.path.join(log_dir, 'flask.log'))
-        file_handler.setFormatter(logging.Formatter(app.config['LOG_FORMAT']))
+
+        file_handler = logging.FileHandler(os.path.join(log_dir, "flask.log"))
+        file_handler.setFormatter(logging.Formatter(app.config["LOG_FORMAT"]))
         file_handler.setLevel(logging.INFO)
-        
+
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
     else:
         # 开发环境：控制台日志
         console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter(app.config['LOG_FORMAT']))
+        console_handler.setFormatter(logging.Formatter(app.config["LOG_FORMAT"]))
         console_handler.setLevel(logging.DEBUG)
-        
+
         app.logger.addHandler(console_handler)
         app.logger.setLevel(logging.DEBUG)
 
 
 def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
     """注册路由"""
-    
-    @app.route('/')
+
+    @app.route("/")
     def home():
         """首页"""
         stock_module_info = ""
@@ -137,10 +151,11 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
             """
         else:
             stock_module_info = "<p>⚠️ 股票数据模块当前不可用</p>"
-        
+
         v2free_module_info = ""
         try:
-            from v2free_routes import V2FREE_AVAILABLE
+            from app.v2free.routes import V2FREE_AVAILABLE
+
             if V2FREE_AVAILABLE:
                 v2free_module_info = """
                 <h2>🌐 V2free 自动化模块</h2>
@@ -155,7 +170,7 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
                 v2free_module_info = "<p>⚠️ V2free 自动化模块当前不可用</p>"
         except:
             v2free_module_info = "<p>⚠️ V2free 自动化模块当前不可用</p>"
-        
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -189,8 +204,8 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
             
             <div class="module">
                 <h2>📈 股票数据模块
-                    <span class="status {'available' if stock_module_available else 'unavailable'}">
-                        {'✅ 可用' if stock_module_available else '❌ 不可用'}
+                    <span class="status {"available" if stock_module_available else "unavailable"}">
+                        {"✅ 可用" if stock_module_available else "❌ 不可用"}
                     </span>
                 </h2>
                 {stock_module_info}
@@ -198,8 +213,8 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
             
             <div class="module">
                 <h2>🌐 V2free 自动化模块
-                    <span class="status {'available' if V2FREE_AVAILABLE else 'unavailable'}">
-                        {'✅ 可用' if V2FREE_AVAILABLE else '❌ 不可用'}
+                    <span class="status {"available" if V2FREE_AVAILABLE else "unavailable"}">
+                        {"✅ 可用" if V2FREE_AVAILABLE else "❌ 不可用"}
                     </span>
                 </h2>
                 {v2free_module_info}
@@ -208,9 +223,9 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
             <div class="module">
                 <h2>🔧 系统信息</h2>
                 <ul>
-                    <li><strong>启动时间:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</li>
-                    <li><strong>调试模式:</strong> {'开启' if app.debug else '关闭'}</li>
-                    <li><strong>主机:</strong> {app.config['HOST']}:{app.config['PORT']}</li>
+                    <li><strong>启动时间:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</li>
+                    <li><strong>调试模式:</strong> {"开启" if app.debug else "关闭"}</li>
+                    <li><strong>主机:</strong> {app.config["HOST"]}:{app.config["PORT"]}</li>
                 </ul>
             </div>
             
@@ -230,93 +245,106 @@ def register_routes(app, stock_module_available=False, V2FREE_AVAILABLE=False):
         </html>
         """
         return render_template_string(html_content)
-    
-    @app.route('/api/hello')
+
+    @app.route("/api/hello")
     def api_hello():
         """打招呼API"""
-        return jsonify({
-            'message': '你好！欢迎使用 Flask API',
-            'status': 'success',
-            'timestamp': datetime.now().isoformat(),
-            'services': {
-                'flask_app': 'available',
-                'stock_module': 'available' if stock_module_available else 'unavailable'
+        return jsonify(
+            {
+                "message": "你好！欢迎使用 Flask API",
+                "status": "success",
+                "timestamp": datetime.now().isoformat(),
+                "services": {
+                    "flask_app": "available",
+                    "stock_module": "available"
+                    if stock_module_available
+                    else "unavailable",
+                },
             }
-        })
-    
-    @app.route('/api/health')
+        )
+
+    @app.route("/api/health")
     def api_health():
         """健康检查API"""
         services = {
-            'flask_app': 'healthy',
-            'stock_module': 'healthy' if stock_module_available else 'unavailable'
+            "flask_app": "healthy",
+            "stock_module": "healthy" if stock_module_available else "unavailable",
         }
-        
+
         # 检查股票模块健康
         if stock_module_available:
             try:
-                from stock_api import get_stock_fetcher
+                from app.stock.api import get_stock_fetcher
+
                 fetcher = get_stock_fetcher()
                 # 简单测试
                 test_stocks = fetcher.get_top_fund_flow_stocks(days=1, top_n=1)
                 if test_stocks:
-                    services['stock_module'] = 'healthy'
+                    services["stock_module"] = "healthy"
                 else:
-                    services['stock_module'] = 'degraded'
+                    services["stock_module"] = "degraded"
             except Exception as e:
-                services['stock_module'] = f'unhealthy: {str(e)}'
-        
-        return jsonify({
-            'status': 'healthy',
-            'service': 'flask-app',
-            'version': '2.0.0',
-            'timestamp': datetime.now().isoformat(),
-            'services': services
-        })
-    
-    @app.route('/api/info')
+                services["stock_module"] = f"unhealthy: {str(e)}"
+
+        return jsonify(
+            {
+                "status": "healthy",
+                "service": "flask-app",
+                "version": "2.0.0",
+                "timestamp": datetime.now().isoformat(),
+                "services": services,
+            }
+        )
+
+    @app.route("/api/info")
     def api_info():
         """系统信息API"""
-        return jsonify({
-            'application': 'Flask Stock Data App',
-            'version': '2.0.0',
-            'description': '集成了A股股票数据获取功能的Flask应用',
-            'timestamp': datetime.now().isoformat(),
-            'modules': {
-                'flask': 'available',
-                'stock_data': 'available' if stock_module_available else 'unavailable',
-                'v2free_automation': 'available' if V2FREE_AVAILABLE else 'unavailable',
-                'reddit_push': 'available'  # 假设Reddit推送模块存在
-            },
-            'endpoints': {
-                'core': ['/', '/api/hello', '/api/health', '/api/info'],
-                'stock': [
-                    '/api/stock/health',
-                    '/api/stock/top_fund_flow',
-                    '/api/stock/details/<code>',
-                    '/api/stock/historical',
-                    '/api/stock/realtime',
-                    '/api/stock/config',
-                    '/api/stock/docs'
-                ] if stock_module_available else [],
-                'v2free': [
-                    '/v2free/',
-                    '/v2free/api/health',
-                    '/v2free/api/config',
-                    '/v2free/api/logs',
-                    '/v2free/api/login'
-                ] if V2FREE_AVAILABLE else []
+        return jsonify(
+            {
+                "application": "Flask Stock Data App",
+                "version": "2.0.0",
+                "description": "集成了A股股票数据获取功能的Flask应用",
+                "timestamp": datetime.now().isoformat(),
+                "modules": {
+                    "flask": "available",
+                    "stock_data": "available"
+                    if stock_module_available
+                    else "unavailable",
+                    "v2free_automation": "available"
+                    if V2FREE_AVAILABLE
+                    else "unavailable",
+                    "reddit_push": "available",  # 假设Reddit推送模块存在
+                },
+                "endpoints": {
+                    "core": ["/", "/api/hello", "/api/health", "/api/info"],
+                    "stock": [
+                        "/api/stock/health",
+                        "/api/stock/top_fund_flow",
+                        "/api/stock/details/<code>",
+                        "/api/stock/historical",
+                        "/api/stock/realtime",
+                        "/api/stock/config",
+                        "/api/stock/docs",
+                    ]
+                    if stock_module_available
+                    else [],
+                    "v2free": [
+                        "/v2free/",
+                        "/v2free/api/health",
+                        "/v2free/api/config",
+                        "/v2free/api/logs",
+                        "/v2free/api/login",
+                    ]
+                    if V2FREE_AVAILABLE
+                    else [],
+                },
             }
-        })
+        )
 
 
 # 创建应用实例
 app = create_app()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.logger.info(f"启动Flask应用，监听 {app.config['HOST']}:{app.config['PORT']}")
-    app.run(
-        host=app.config['HOST'],
-        port=app.config['PORT'],
-        debug=app.config['DEBUG']
-    )
+    app.run(host=app.config["HOST"], port=app.config["PORT"], debug=app.config["DEBUG"])

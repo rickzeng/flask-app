@@ -41,9 +41,14 @@ reddit_push.log
 reddit_cron.log
 
 # Output directories
+data/
+logs/
 reddit_output/
 reddit_records/
+reddit_cache/
 stock_data/
+v2free_logs/
+v2free_screenshots/
 
 # IDE
 .vscode/

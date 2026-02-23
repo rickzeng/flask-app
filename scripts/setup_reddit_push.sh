@@ -17,11 +17,11 @@ pip3 install requests schedule
 
 # 创建必要的目录
 echo -e "\n3. 创建目录结构..."
-mkdir -p reddit_output reddit_records reddit_cache
+mkdir -p data/cache data/output data/records reddit_output reddit_records reddit_cache
 
 # 设置文件权限
 echo -e "\n4. 设置文件权限..."
-chmod +x reddit_daily_push.py reddit_push_main.py
+chmod +x app/reddit/push.py app/reddit/main.py
 
 # 测试 Reddit 访问
 echo -e "\n5. 测试 Reddit 访问..."
@@ -66,14 +66,14 @@ echo "   环境配置已保存到 .env.reddit"
 
 # 测试脚本运行
 echo -e "\n8. 测试脚本运行..."
-python3 reddit_push_main.py --test
+python3 app/reddit/main.py --test
 
 # 设置 cron 任务
 echo -e "\n9. 设置 cron 定时任务..."
 cat > reddit_cron_setup.txt << EOF
 # Reddit 每日推送 cron 配置
 # 每天中午12点运行
-0 12 * * * cd $(pwd) && python3 reddit_push_main.py --once >> reddit_cron.log 2>&1
+0 12 * * * cd $(pwd) && python3 app/reddit/main.py --once >> reddit_cron.log 2>&1
 
 # 添加到 crontab 的命令:
 # crontab -e
@@ -94,7 +94,7 @@ Type=simple
 User=$(whoami)
 WorkingDirectory=$(pwd)
 EnvironmentFile=$(pwd)/.env.reddit
-ExecStart=/usr/bin/python3 $(pwd)/reddit_push_main.py --daemon
+ExecStart=/usr/bin/python3 $(pwd)/app/reddit/main.py --daemon
 Restart=on-failure
 RestartSec=10
 
@@ -110,17 +110,17 @@ echo "   启用自启: sudo systemctl enable reddit-push"
 # 使用说明
 echo -e "\n📋 安装完成！使用说明:"
 echo "=============================="
-echo "立即测试推送: python3 reddit_push_main.py --once"
-echo "启动守护进程: python3 reddit_push_main.py --daemon"
+echo "立即测试推送: python3 app/reddit/main.py --once"
+echo "启动守护进程: python3 app/reddit/main.py --daemon"
 echo "查看日志: tail -f reddit_push.log"
 echo "查看输出: ls reddit_output/"
 echo ""
 echo "📅 定时任务设置:"
 echo "1. 编辑 crontab: crontab -e"
-echo "2. 添加行: 0 12 * * * cd $(pwd) && python3 reddit_push_main.py --once >> reddit_cron.log 2>&1"
+echo "2. 添加行: 0 12 * * * cd $(pwd) && python3 app/reddit/main.py --once >> reddit_cron.log 2>&1"
 echo ""
 echo "🛠️ 自定义配置:"
-echo "编辑 reddit_config.py 修改关注的 subreddit"
+echo "编辑 app/reddit/config.py 修改关注的 subreddit"
 echo "编辑 .env.reddit 修改推送时间和代理设置"
 
 echo -e "\n🎉 安装完成！"
